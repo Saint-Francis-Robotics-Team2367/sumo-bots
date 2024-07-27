@@ -81,7 +81,7 @@ void CommsManager::UdpCallback(AsyncUDPPacket packet)
         }
     }
 
-    if(packet.length() == sizeof(ManagerBuffer))
+    else if(packet.length() == sizeof(ManagerBuffer))
     {
         bool in_match = false;
         auto data_peek = reinterpret_cast<ManagerBuffer *>(packet.data());
@@ -129,12 +129,20 @@ void CommsManager::UdpCallback(AsyncUDPPacket packet)
 void CommsManager::Initialize()
 {
     WiFi.mode(WIFI_STA);
-    WiFi.begin(p_ssid.c_str(), p_pwd.c_str());
-    if (WiFi.waitForConnectResult() != WL_CONNECTED)
-    {
-        for(;;);//halt and catch fire for now, maybe handle it latter. At least blink aggressivly. 
-    }
 
+    // Loop until we connect
+    for(;;)
+    {
+        WiFi.begin(p_ssid.c_str(), p_pwd.c_str());
+        
+        // When we connect, break out of the inifinte loop otherwise disconnect and we'll try again next loop
+        if (WiFi.waitForConnectResult() == WL_CONNECTED)
+        {
+            break;  
+        }
+        Wifi.disconnect();
+    }
+    
     //get the local ip then convert to the broadcast address
     auto broadcast_ip = WiFi.localIP();
     broadcast_ip[3] = 255;
