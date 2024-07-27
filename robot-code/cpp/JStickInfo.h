@@ -25,5 +25,7 @@ class Joystick
     auto getRightStick() const -> const Stick& {return jStick.right;}
     auto getLeftTrigger() const -> const int8_t {return jStick.left_trigger;}
     auto getRightTrigger() const -> const int8_t {return jStick.right_trigger;}
-    auto getButtonRaw(int button_index) const -> const bool {return (jStick.buttons & (1 << button_index));}
+    auto getButtonRaw(int button_index) const -> const bool {return (jStick.buttons & (1 << button_index)) != 0;}
+
+    Joystick() = default;
 };
