@@ -68,3 +68,23 @@ class SumoBot:
             "button_data": str(controller_data[6])+str(controller_data[7])
         }
         return controller_state
+
+class Motor:
+    def __init__(self, pin1, pin2, speed_limit=0.5, pwm_freq=2000):
+        assert speed_limit<=1
+        self.pin1 = PWM(Pin(pin), frequency)
+        self.speed_limit = speed_limit
+
+    def drive(speed):
+        assert speed<=1 and speed>=-1
+        duty_cycle = (speed_limit*abs(speed)*1024)
+        if speed<0:
+            pin1.duty(duty_cycle)
+            pin2.duty(0)
+        if speed>0:
+            pin1.duty(0)
+            pin2.duty(duty_cycle)
+        else:
+            pin1.duty(0)
+            pin2.duty(0)
+
