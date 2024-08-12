@@ -69,12 +69,18 @@ class SumoBot:
         }
         return controller_state
 
+
+
 class Motor:
+    ### Sets up motor controller for user control
+    ### Does not return
     def __init__(self, pin1, pin2, speed_limit=0.5, pwm_freq=2000):
         assert speed_limit<=1
         self.pin1 = PWM(Pin(pin), frequency)
         self.speed_limit = speed_limit
 
+    ### Gives user control of driving the robot while abstracting PWM signals from them
+    ### Does not return
     def drive(speed):
         assert speed<=1 and speed>=-1
         duty_cycle = (speed_limit*abs(speed)*1024)
