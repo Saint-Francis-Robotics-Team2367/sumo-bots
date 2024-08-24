@@ -1,6 +1,7 @@
 import socket
 import network
 import time
+from machine import Pin, PWM
 
 class SumoBot:
     ### Sets up the ESP32 dev board and connects to the Wi-Fi network
@@ -44,8 +45,8 @@ class SumoBot:
             name_called = bytes(int(hex_val, 16) for hex_val in hex_list)
             if name_called == self.robot_name:
                 self.my_game_state = game_state >> 2
-                return "Game State Update: " + str(self.my_game_state)
-        return "Game State Update: N/A"
+                return {"game_state": int(self.my_game_state)}
+        return {"game_state": "N/A"}
 
 
     ### Parses the UDP data to get the controller inputs as is relevant to the robot
@@ -75,22 +76,22 @@ class Motor:
     ### Sets up motor controller for user control
     ### Does not return
     def __init__(self, pin1, pin2, speed_limit=0.5, pwm_freq=2000):
-        assert speed_limit<=1
-        self.pin1 = PWM(Pin(pin), frequency)
+        assert speed_limit<=1 and speed_limit>0
+        self.pin1 = PWM(Pin(pin1), pwm_freq)
+        self.pin2 = PWM(Pin(pin2), pwm_freq)
         self.speed_limit = speed_limit
 
     ### Gives user control of driving the robot while abstracting PWM signals from them
     ### Does not return
-    def drive(speed):
+    def drive(self, speed):
         assert speed<=1 and speed>=-1
-        duty_cycle = (speed_limit*abs(speed)*1024)
+        duty_cycle = round(self.speed_limit*abs(speed)*1023)
         if speed<0:
-            pin1.duty(duty_cycle)
-            pin2.duty(0)
-        if speed>0:
-            pin1.duty(0)
-            pin2.duty(duty_cycle)
+            self.pin1.duty(duty_cycle)
+            self.pin2.duty(0)
+        elif speed>0:
+            self.pin1.duty(0)
+            self.pin2.duty(duty_cycle)
         else:
-            pin1.duty(0)
-            pin2.duty(0)
-
+            self.pin1.duty(0)
+            self.pin2.duty(0)
