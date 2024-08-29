@@ -96,22 +96,22 @@ class Motor:
             self.pin1.duty(0)
             self.pin2.duty(0)
 
-    class Sensor:
+class Sensor:
     #sets up sensor given sensor id
-        def __init__(self, pin_num, pin_type):
-            self.pin_id = pin_num
-            if pin_type=='analog':
-                self.pin_type = "analog"
-                self.reading = ADC(Pin(self.pin_id))
-            else:
-                self.pin_type = "digital"
-                self.reading = Pin(self.pin_id)
-        def read_analog(self):
-            assert(self.pin_type=="analog")
-            val = self.reading.read()
-            return val
-        
-        def read_digital(self):
-            assert(self.pin_type=="digital")
-            val = self.reading.value()
-            return val
+    def __init__(self, pin_number, pin_type):
+        self.pin_num = pin_number
+        if pin_type=='analog':
+            self.pin_type = "analog"
+            self.reading = ADC(Pin(self.pin_num))
+        else:
+            self.pin_type = "digital"
+            self.reading = Pin(self.pin_num, Pin.IN)
+    def read_analog(self):
+        assert(self.pin_type=="analog")
+        val = self.reading.read()
+        return val
+    
+    def read_digital(self):
+        assert(self.pin_type=="digital")
+        val = self.reading.value()
+        return val
