@@ -1,4 +1,5 @@
 import socket
+import network
 import time
 from machine import Pin, PWM, ADC
 
@@ -143,3 +144,9 @@ def main():
         distance = adc_to_distance()
         print("Distance: " + distance)
         time.sleep(1)
+
+def test_controller():
+    test_bot = SumoBot()
+    while(true):
+        print(test_bot.parse_robot_command(read_udp_packet()))
+        time.sleep(2)
