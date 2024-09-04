@@ -1,7 +1,6 @@
 import socket
-import network
 import time
-from machine import Pin, PWM
+from machine import Pin, PWM, ADC
 
 class SumoBot:
     ### Sets up the ESP32 dev board and connects to the Wi-Fi network
@@ -95,3 +94,52 @@ class Motor:
         else:
             self.pin1.duty(0)
             self.pin2.duty(0)
+            
+class Sensor:
+    def __init__(self, pin, signal_type, converter_pin):
+        self.pin_id = pin
+        if (signal_type=="digital"):
+            val = read_digital(converter_pin)
+        elif (signal_type=="analog"):
+            val = read_analog(converter_pin)
+        return val
+            
+    def read_analog(pin):
+        adc = ADC(Pin(pin))
+        val = adc.read_u16()
+        val = adc.read_uv()
+        return val
+    
+    def read_digital(pin):
+        adc = ADC(Pin(pin))
+        val = adc.read_u16()
+        val = adc.read_uv()
+        return val
+
+
+# Function to convert ADC value to distance
+def adc_to_distance(adc_value):
+    volts = adc_value*0.0048828125
+    distance = 40*pow(volts, -1)
+    return distance
+
+    # Main loop to continuously read the distance
+    while True:
+        adc_value = adc.read()  # Read the ADC value from GPIO32
+        distance = adc_to_distance(adc_value)  # Convert ADC value to distance
+        print("Distance: " + distance)  # Print the distance value
+        time.sleep(0.1)  # Delay for half a second before the next reading"""
+
+    input_pin = Pin(33, Pin.IN)
+    while True:
+            value = input_pin.value()  # Read the digital value (0 or 1)
+            print("GPIO 33 value:", value)  # Print the value to the console
+            time.sleep(0.1)  # Wait
+
+def main():
+    # Initialize a distance sensor
+    distance_sensor = Sensor(pin=32, signal_type="analog", converter_pin=10) # changed pin number
+    while(true):
+        distance = adc_to_distance()
+        print("Distance: " + distance)
+        time.sleep(1)
