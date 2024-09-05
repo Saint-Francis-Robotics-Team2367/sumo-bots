@@ -19,6 +19,7 @@ class SumoBot:
         print('network config:', wlan.ifconfig())
         print("Connected to Wi-Fi. IP:", wlan.ifconfig()[0])
         self.socket.bind(('', port))
+        connect_to_station()
         print('Receiving on UDP Port...')
 
     ### Called by user to receive the data from UDP
@@ -26,6 +27,7 @@ class SumoBot:
     def read_udp_packet(self):
         data = None
         while data is None:
+            self.socket.sendto(self.robot_name.encode(), ("255.255.255.255", 2367))
             data, addr = self.socket.recvfrom(1024)
         if len(data) == 24:
             return self.parse_robot_command(data)
@@ -69,14 +71,6 @@ class SumoBot:
             "button_data": str(controller_data[6])+str(controller_data[7])
         }
         return controller_state
-    def connect_to_station(self){
-        while(True){
-            target_ip = 0 #update this
-            target_port = 0 #update this
-            self.socket.sendto(self.robot_name.encode(), (target_ip, target_port))
-        }
-        
-    }
 
 
 class Motor:
