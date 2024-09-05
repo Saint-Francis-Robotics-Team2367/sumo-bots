@@ -69,7 +69,14 @@ class SumoBot:
             "button_data": str(controller_data[6])+str(controller_data[7])
         }
         return controller_state
-
+    def connect_to_station(self){
+        while(True){
+            target_ip = 0 #update this
+            target_port = 0 #update this
+            self.socket.sendto(self.robot_name.encode(), (target_ip, target_port))
+        }
+        
+    }
 
 
 class Motor:
