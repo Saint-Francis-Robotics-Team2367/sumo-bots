@@ -14,15 +14,19 @@ def connect_robot(robot, controller):
     print(f"Connected {robot} to {controller}")
 
 # Function to toggle button states
+# Function to toggle button states
 def toggle_button(new_active):
     global active_button
     # Deactivate the previously active button
     if active_button:
         active_button["relief"] = "raised"
-    
+        active_button["bg"] = "SystemButtonFace"  # Reset to default button color
+
     # Activate the new button
     active_button = new_active
     active_button["relief"] = "sunken"
+    active_button["bg"] = "lightgreen"  # Set active button color
+
 
 # Keyboard shortcut function to rotate buttons
 def on_spacebar_press(event):
