@@ -3,6 +3,11 @@ import network
 import time
 from machine import Pin, PWM, ADC
 
+## Unclaimed = 0
+## Standby = 1
+## Autonomy = 2
+## Teleoperation = 3
+
 class SumoBot:
     ### Sets up the ESP32 dev board and connects to the Wi-Fi network
     ### Does not return and is not user-facing
@@ -27,7 +32,6 @@ class SumoBot:
     def read_udp_packet(self):
         data = None
         while data is None:
-            self.socket.sendto(self.robot_name.encode(), ("255.255.255.255", 2367))
             data, addr = self.socket.recvfrom(1024)
         if len(data) == 24:
             return self.parse_robot_command(data)
@@ -71,6 +75,22 @@ class SumoBot:
             "button_data": str(controller_data[6])+str(controller_data[7])
         }
         return controller_state
+
+    def tick(self):
+        payload = read_udp_packet()
+        if (game_state in payload):
+            if (self.my_game_state == 0):
+                self.socket.sendto(self.robot_name.encode(), ("255.255.255.255", 2367))
+                read_udp_packet()
+                return "unclaimed"
+            elif (self.my_game_state == 1):
+                read_udp_packet()
+                return "standby"
+            elif (self.my_game_state == 2):
+                read_udp_packet()
+                return "autonomy"
+            elif (self.my_game_state == 3):
+                return "teleoperation"
 
 
 class Motor:
