@@ -122,18 +122,19 @@ class Sensor:
     ### Does not return
     def __init__(self, pin_number):
         self.pin_num = pin_number
-        self.analog = ADC(Pin(self.pin_num, Pin.IN, Pin.PULL_UP))
-        self.digital = Pin(self.pin_num, Pin.IN, Pin.PULL_UP)
+        self.pin = None
 
     ### Reads analog signals coming from the sensor
     ### Returns analog value
     def read_analog(self):
-        val = self.analog.read()
-        return val
+        if type(self.pin) != ADC:
+            self.pin = ADC(Pin(self.pin_num, Pin.ANALOG))
+        return self.pin.read()
     
     ### Reads digital signals coming from the sensor
     ### Returns digital value
     def read_digital(self):
-        val = self.digital.value()
-        return val
+        if type(self.pin) != Pin:
+            self.pin = Pin(self.pin_num, Pin.IN, Pin.PULL_UP)
+        return self.pin.value()
 
