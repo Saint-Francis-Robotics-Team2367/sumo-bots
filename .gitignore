@@ -67,6 +67,8 @@ Makefile*
 *.qmlproject.user
 *.qmlproject.user.*
 
+*.idx
+
 /build-*
 
 src/pi/\.idea/
