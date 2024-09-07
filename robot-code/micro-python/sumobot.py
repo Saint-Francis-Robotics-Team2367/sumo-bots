@@ -1,7 +1,7 @@
 import socket
 #import network
 import time
-#from machine import Pin, PWM, ADC
+from machine import Pin, PWM
 
 class SumoBot:
     ### Sets up the ESP32 dev board and connects to the Wi-Fi network
@@ -19,6 +19,7 @@ class SumoBot:
         print('network config:', wlan.ifconfig())
         print("Connected to Wi-Fi. IP:", wlan.ifconfig()[0])
         self.socket.bind(('', port))
+        connect_to_station()
         print('Receiving on UDP Port...')
 
     ### Called by user to receive the data from UDP
@@ -70,6 +71,21 @@ class SumoBot:
         }
         return controller_state
 
+    def tick(self):
+        payload = read_udp_packet()
+        if (game_state in payload):
+            if (self.my_game_state == 0):
+                self.socket.sendto(self.robot_name.encode(), ("255.255.255.255", 2367))
+                read_udp_packet()
+                return "unclaimed"
+            elif (self.my_game_state == 1):
+                read_udp_packet()
+                return "standby"
+            elif (self.my_game_state == 2):
+                read_udp_packet()
+                return "autonomy"
+            elif (self.my_game_state == 3):
+                return "teleoperation"
 
 
 class Motor:
@@ -95,88 +111,3 @@ class Motor:
         else:
             self.pin1.duty(0)
             self.pin2.duty(0)
-            
-class Sensor:
-    def __init__(self, pin, signal_type):
-        self.pin_id = pin
-        if (signal_type=="digital"):
-            self.pin_type = "digital"
-        elif (signal_type=="analog"):
-            self.pin_type = "analog"
-            
-    def read_analog(self):
-        assert(self.pin_type=="analog")
-        val = self.reading.read()
-        return val
-    
-    ### Reads digital signals coming from the sensor
-    ### Returns digital value
-    def read_digital(self):
-        assert(self.pin_type=="digital")
-        val = self.reading.value()
-        return val
-
-
-# Function to convert ADC value to distance
-def adc_to_distance(adc_value):
-    volts = adc_value*0.0048828125
-    distance = 40*pow(volts, -1)
-    return distance
-
-    # Main loop to continuously read the distance
-    while True:
-        adc_value = adc.read()  # Read the ADC value from GPIO32
-        distance = adc_to_distance(adc_value)  # Convert ADC value to distance
-        print("Distance: " + distance)  # Print the distance value
-        time.sleep(0.1)  # Delay for half a second before the next reading"""
-
-    input_pin = Pin(33, Pin.IN)
-    while True:
-            value = input_pin.value()  # Read the digital value (0 or 1)
-            print("GPIO 33 value:", value)  # Print the value to the console
-            time.sleep(0.1)  # Wait
-
-def main():
-    # Initialize a distance sensor
-    distance_sensor = Sensor(pin=32, signal_type="analog", converter_pin=10) # changed pin number
-    while(true):
-        distance = adc_to_distance()
-        print("Distance: " + distance)
-        time.sleep(1)
-
-def convert_to_speed(ctr_data): # converting ctr data to speeds for motors
-    speed = (ctr_data-127.5)/127.5
-    return speed
-
-def test_controller():
-    test_bot = SumoBot()
-    while(true):
-        ctr_byte_values = test_bot.parse_robot_command(read_udp_packet()) # gets value of ctr in bytes
-        ctr_int_values = int(ctr_byte_values['joystick_right_y'], 2) # turns ctr_byte_values to int
-        print(ctr_int_values)
-        motor_speed = convert_to_speed(ctr_int_values) # sets value from 0 to 1
-        #motor_test = Motor(31, 32) # UNCOMMENT WHEN READY TO TEST / UPDATE PIN VALUES
-        #motor_test.drive(motor_speed)
-        time.sleep(0.5)
-
-def move_distance(motor, distance, speed):
-    time_to_move = distance/24
-    motor.drive(speed)
-    time.sleep(time_to_move)
-    
-# testing sensor code
-'''sensor_pin = 32
-test_sensor = Sensor(sensor_pin, "analog")
-while (True):
-    test_sensor.read_analog()
-    time.sleep(0.1)'''
-
-# testing light
-light = Pin(2)
-light.value(1)
-
-# testing motors
-test_motor1 = Motor(18, 19)
-test_motor1.drive(1)
-test_motor2 = Motor(21, 22)
-test_motor2.drive(1)
