@@ -135,6 +135,6 @@ class Sensor:
     ### Returns digital value
     def read_digital(self):
         if type(self.pin) != Pin:
-            self.pin = Pin(self.pin_num, Pin.IN, Pin.PULL_UP)
+            self.pin = Pin(self.pin_num, Pin.IN, Pin.PULL_DOWN)
         return self.pin.value()
 
