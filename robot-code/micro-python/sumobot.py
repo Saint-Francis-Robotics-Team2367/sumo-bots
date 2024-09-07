@@ -1,7 +1,7 @@
 import socket
-import network
+#import network
 import time
-from machine import Pin, PWM, ADC
+#from machine import Pin, PWM, ADC
 
 class SumoBot:
     ### Sets up the ESP32 dev board and connects to the Wi-Fi network
@@ -97,24 +97,23 @@ class Motor:
             self.pin2.duty(0)
             
 class Sensor:
-    def __init__(self, pin, signal_type, converter_pin):
+    def __init__(self, pin, signal_type):
         self.pin_id = pin
         if (signal_type=="digital"):
-            val = read_digital(converter_pin)
+            self.pin_type = "digital"
         elif (signal_type=="analog"):
-            val = read_analog(converter_pin)
-        return val
+            self.pin_type = "analog"
             
-    def read_analog(pin):
-        adc = ADC(Pin(pin))
-        val = adc.read_u16()
-        val = adc.read_uv()
+    def read_analog(self):
+        assert(self.pin_type=="analog")
+        val = self.reading.read()
         return val
     
-    def read_digital(pin):
-        adc = ADC(Pin(pin))
-        val = adc.read_u16()
-        val = adc.read_uv()
+    ### Reads digital signals coming from the sensor
+    ### Returns digital value
+    def read_digital(self):
+        assert(self.pin_type=="digital")
+        val = self.reading.value()
         return val
 
 
@@ -145,8 +144,39 @@ def main():
         print("Distance: " + distance)
         time.sleep(1)
 
+def convert_to_speed(ctr_data): # converting ctr data to speeds for motors
+    speed = (ctr_data-127.5)/127.5
+    return speed
+
 def test_controller():
     test_bot = SumoBot()
     while(true):
-        print(test_bot.parse_robot_command(read_udp_packet()))
-        time.sleep(2)
+        ctr_byte_values = test_bot.parse_robot_command(read_udp_packet()) # gets value of ctr in bytes
+        ctr_int_values = int(ctr_byte_values['joystick_right_y'], 2) # turns ctr_byte_values to int
+        print(ctr_int_values)
+        motor_speed = convert_to_speed(ctr_int_values) # sets value from 0 to 1
+        #motor_test = Motor(31, 32) # UNCOMMENT WHEN READY TO TEST / UPDATE PIN VALUES
+        #motor_test.drive(motor_speed)
+        time.sleep(0.5)
+
+def move_distance(motor, distance, speed):
+    time_to_move = distance/24
+    motor.drive(speed)
+    time.sleep(time_to_move)
+    
+# testing sensor code
+'''sensor_pin = 32
+test_sensor = Sensor(sensor_pin, "analog")
+while (True):
+    test_sensor.read_analog()
+    time.sleep(0.1)'''
+
+# testing light
+light = Pin(2)
+light.value(1)
+
+# testing motors
+test_motor1 = Motor(18, 19)
+test_motor1.drive(1)
+test_motor2 = Motor(21, 22)
+test_motor2.drive(1)
