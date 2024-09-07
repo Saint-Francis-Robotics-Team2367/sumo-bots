@@ -8,6 +8,7 @@ from machine import Pin, PWM, ADC
 ## Autonomy = 2
 ## Teleoperation = 3
 
+
 class SumoBot:
     ### Sets up the ESP32 dev board and connects to the Wi-Fi network
     ### Does not return and is not user-facing
@@ -22,8 +23,10 @@ class SumoBot:
         wlan.connect(ssid, password)
         while not wlan.isconnected():
             time.sleep(1)
+            
         print('network config:', wlan.ifconfig())
         print("Connected to Wi-Fi. IP: ", wlan.ifconfig()[0])
+
         self.socket.bind(('', port))
         connect_to_station()
         print('Receiving on UDP Port...')
@@ -106,7 +109,6 @@ class Motor:
             self.pin2.duty(duty_cycle)
         else:
             self.pin1.duty(0)
-            self.pin2.duty(0)
 
 class Sensor:
     ### Sets up a sensor given pin number and sensor type
@@ -134,3 +136,4 @@ class Sensor:
         assert(self.pin_type=="digital")
         val = self.reading.value()
         return val
+
