@@ -28,7 +28,6 @@ class SumoBot:
         print("Connected to Wi-Fi. IP: ", wlan.ifconfig()[0])
 
         self.socket.bind(('', port))
-        connect_to_station()
         print('Receiving on UDP Port...')
 
     ### Called by user to receive the data from UDP
