@@ -2,6 +2,7 @@ import socket
 import network
 import time
 from machine import Pin, PWM, ADC
+import threading
 
 ## Unclaimed = 0
 ## Standby = 1
@@ -29,14 +30,21 @@ class SumoBot:
 
         self.socket.bind(('', port))
         print('Receiving on UDP Port...')
+        broadcast_thread = threading.Thread(target=broadcast)
 
     ### Called by user to receive the data from UDP
     ### The output either will show the updated game state or the controller status depending on game state
+    def broadcast(self):
+        try:
+            name = "!" + self.robot_name + "@"
+            while True:
+                self.socket.sendto(name.encode(), ("255.255.255.255", 2367))
+                time.sleep(1)
+        except:
+            os._exit(1)
+
     def read_udp_packet(self):
         data = None
-        name = "!" + self.robot_name + "@"
-        self.socket.sendto(name.encode(), ("255.255.255.255", 2367))
-
         try:
             data, addr = self.socket.recvfrom(1024)
         except:
@@ -112,27 +120,20 @@ class Motor:
 class Sensor:
     ### Sets up a sensor given pin number and sensor type
     ### Does not return
-    def __init__(self, pin_number, pin_type):
-        assert pin_type=="analog" or pin_type=="digital"
+    def __init__(self, pin_number):
         self.pin_num = pin_number
-        if pin_type=="analog":
-            self.pin_type = "analog"
-            self.reading = ADC(Pin(self.pin_num))
-        else:
-            self.pin_type = "digital"
-            self.reading = Pin(self.pin_num, Pin.IN)
+        self.analog = ADC(Pin(self.pin_num, Pin.IN, Pin.PULL_UP))
+        self.digital = Pin(self.pin_num, Pin.IN, Pin.PULL_UP)
 
     ### Reads analog signals coming from the sensor
     ### Returns analog value
     def read_analog(self):
-        assert(self.pin_type=="analog")
-        val = self.reading.read()
+        val = self.analog.read()
         return val
     
     ### Reads digital signals coming from the sensor
     ### Returns digital value
     def read_digital(self):
-        assert(self.pin_type=="digital")
-        val = self.reading.value()
+        val = self.digital.value()
         return val
 
