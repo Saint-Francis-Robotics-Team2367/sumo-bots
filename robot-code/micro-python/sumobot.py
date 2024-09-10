@@ -34,9 +34,9 @@ class SumoBot:
 
     ### Called by user to receive the data from UDP
     ### The output either will show the updated game state or the controller status depending on game state
-    def broadcast(self):
+    def broadcast(self, debug=""):
         try:
-            name = "!" + self.robot_name + "@"
+            name = "!" + self.robot_name + "@" + debug
             while True:
                 self.socket.sendto(name.encode(), ("255.255.255.255", 2367))
                 time.sleep(1)
