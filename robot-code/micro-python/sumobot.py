@@ -115,6 +115,7 @@ class Motor:
             self.pin2.duty(duty_cycle)
         else:
             self.pin1.duty(0)
+            self.pin2.duty(0)
 
 class Sensor:
     ### Sets up a sensor given pin number and sensor type
