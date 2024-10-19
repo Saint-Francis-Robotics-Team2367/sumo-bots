@@ -128,7 +128,7 @@ class Sensor:
     ### Returns analog value
     def read_analog(self):
         if type(self.pin) != ADC:
-            self.pin = ADC(Pin(self.pin_num, Pin.ANALOG))
+            self.pin = ADC(Pin(self.pin_num))
         return self.pin.read()
     
     ### Reads digital signals coming from the sensor
