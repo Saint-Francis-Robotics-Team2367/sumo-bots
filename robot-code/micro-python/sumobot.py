@@ -2,7 +2,7 @@ import socket
 import network
 import time
 from machine import Pin, PWM, ADC
-
+import threading
 ## Unclaimed = 0
 ## Standby = 1
 ## Autonomy = 2
