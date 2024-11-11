@@ -1,7 +1,14 @@
 import socket
-#import network
+import network
 import time
-from machine import Pin, PWM
+from machine import Pin, PWM, ADC
+import threading
+
+## Unclaimed = 0
+## Standby = 1
+## Autonomy = 2
+## Teleoperation = 3
+
 
 class SumoBot:
     ### Sets up the ESP32 dev board and connects to the Wi-Fi network
@@ -10,28 +17,47 @@ class SumoBot:
         self.robot_name = robot_name
         self.my_game_state = 0
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.socket.settimeout(1.0)
 
         wlan = network.WLAN(network.STA_IF)
         wlan.active(True)
         wlan.connect(ssid, password)
         while not wlan.isconnected():
             time.sleep(1)
+            
         print('network config:', wlan.ifconfig())
-        print("Connected to Wi-Fi. IP:", wlan.ifconfig()[0])
+        print("Connected to Wi-Fi. IP: ", wlan.ifconfig()[0])
+
         self.socket.bind(('', port))
-        connect_to_station()
         print('Receiving on UDP Port...')
+        while True:
+            print(self.read_udp_packet())
+            time.sleep(1)
 
     ### Called by user to receive the data from UDP
     ### The output either will show the updated game state or the controller status depending on game state
+    def broadcast(self, debug=""):
+        try:
+            name = "!" + self.robot_name + "@" + debug
+            while True:
+                self.socket.sendto(name.encode(), ("255.255.255.255", 2367))
+                time.sleep(1)
+        except:
+            os._exit(1)
+
     def read_udp_packet(self):
         data = None
-        while data is None:
+        try:
             data, addr = self.socket.recvfrom(1024)
+        except:
+            return {"data": None}
+
         if len(data) == 24:
             return self.parse_robot_command(data)
         elif len(data) == 65:
             return self.parse_game_state(data)
+        else:
+            return (data, "from ", addr)
 
 
     ### Parses the UDP data to apply the game state to the robot if applicable
@@ -71,43 +97,5 @@ class SumoBot:
         }
         return controller_state
 
-    def tick(self):
-        payload = read_udp_packet()
-        if (game_state in payload):
-            if (self.my_game_state == 0):
-                self.socket.sendto(self.robot_name.encode(), ("255.255.255.255", 2367))
-                read_udp_packet()
-                return "unclaimed"
-            elif (self.my_game_state == 1):
-                read_udp_packet()
-                return "standby"
-            elif (self.my_game_state == 2):
-                read_udp_packet()
-                return "autonomy"
-            elif (self.my_game_state == 3):
-                return "teleoperation"
 
-
-class Motor:
-    ### Sets up motor controller for user control
-    ### Does not return
-    def __init__(self, pin1, pin2, speed_limit=0.5, pwm_freq=2000):
-        assert speed_limit<=1 and speed_limit>0
-        self.pin1 = PWM(Pin(pin1), pwm_freq)
-        self.pin2 = PWM(Pin(pin2), pwm_freq)
-        self.speed_limit = speed_limit
-
-    ### Gives user control of driving the robot while abstracting PWM signals from them
-    ### Does not return
-    def drive(self, speed):
-        assert speed<=1 and speed>=-1
-        duty_cycle = round(self.speed_limit*abs(speed)*1023)
-        if speed<0:
-            self.pin1.duty(duty_cycle)
-            self.pin2.duty(0)
-        elif speed>0:
-            self.pin1.duty(0)
-            self.pin2.duty(duty_cycle)
-        else:
-            self.pin1.duty(0)
-            self.pin2.duty(0)
+bot = SumoBot("Hi")

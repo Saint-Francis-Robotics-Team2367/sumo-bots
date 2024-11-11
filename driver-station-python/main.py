@@ -18,11 +18,12 @@ import struct
 # Make sure you change these values after each esp is connected to the wifi
 # On game day we need to fill this out with every team and their esp32's ip address
 robots = [
-    {"name": "Team 1", "ip_address": ("192.168.0.101", 2367), "controller": None},
-    {"name": "Team 2", "ip_address": ("192.168.0.102", 2367), "controller": None},
-    {"name": "Team 3", "ip_address": ("192.168.0.103", 2367), "controller": None},
-    {"name": "Team 4", "ip_address": ("192.168.0.104", 2367), "controller": None},
+    {"name": "Team 1", "controller": None},
+    {"name": "Team 2", "controller": None},
+    {"name": "Team 3", "controller": None},
+    {"name": "Team 4", "controller": None},
 ]
+
 
 active_controllers = []
 
@@ -75,6 +76,7 @@ def broadcast_game_status():
 
 # Function to encode controller data
 def encode_controller_data(controller):
+    #robots_connected = [robot for robot in robots if robot["controller"] == controller["obj"]]
     # Read the axis and button values
     axes = [controller.get_axis(i) for i in range(controller.get_numaxes())]
     buttons = [controller.get_button(i) for i in range(controller.get_numbuttons())]
@@ -89,10 +91,8 @@ def send_controller_data():
         pygame.event.pump()
         for i, controller in enumerate(active_controllers):
             # For all active controllers find every robot it is connected to and send data to each one
-            robots_connected = [robot for robot in robots if robot["controller"] == controller["obj"]]
             data = encode_controller_data(controller["obj"])
-            for bots in robots_connected:
-                udp_sockets[i].sendto(data, bots["ip_address"])
+            broadcast_socket.sendto(data, ("<broadcast>", 2367))
         time.sleep(0.05)  # Send data at ~20Hz
 
 def refresh_controllers():
@@ -121,7 +121,6 @@ def refresh_controllers():
 pygame.init()
 pygame.joystick.init()
 
-udp_sockets = [socket.socket(socket.AF_INET, socket.SOCK_DGRAM) for _ in range(4)] # setup 4 different sockets for each ESP32
 broadcast_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # setup a broadcast socket for all ESP32s gamestate
 broadcast_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 
@@ -207,6 +206,4 @@ Thread(target=broadcast_game_status, daemon=True).start()
 root.mainloop()
 
 # Clean up sockets on exit
-for sock in udp_sockets:
-    sock.close()
 broadcast_socket.close()
