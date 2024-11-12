@@ -76,40 +76,37 @@ def broadcast_game_status():
 
 # Function to encode controller data
 def encode_controller_data(controller, robot_name):
-	import struct
+    # Ensure the robot name is 16 bytes (padded or truncated)
+    robot_name_bytes = robot_name.encode('utf-8')[:16].ljust(16, b'\x00')
 
-def encode_controller_data(controller, robot_name):
-    # Ensure the robot name is 16 bytes, truncating or padding as needed
-    robot_name_encoded = robot_name.encode('utf-8')[:16].ljust(16, b'\x00')
-
-    # Read joystick axis values and normalize them for encoding as single bytes
-    left_joystick_x = int((controller.get_axis(0) + 1) * 127)  # Normalize to 0-255
-    left_joystick_y = int((controller.get_axis(1) + 1) * 127)
-    right_joystick_x = int((controller.get_axis(3) + 1) * 127)
-    right_joystick_y = int((controller.get_axis(4) + 1) * 127)
-
-    # Read trigger values, normalize them for encoding as single bytes
-    left_trigger = int(controller.get_axis(2) * 127)  # Assuming the range is -1 to 1
+    # Get axis values
+    left_joystick_x = int(controller.get_axis(0) * 127)  # Scale to range [-127, 127]
+    left_joystick_y = int(controller.get_axis(1) * 127)
+    right_joystick_x = int(controller.get_axis(2) * 127)
+    right_joystick_y = int(controller.get_axis(3) * 127)
+    left_trigger = int(controller.get_axis(4) * 127)
     right_trigger = int(controller.get_axis(5) * 127)
 
-    # Encode face buttons separately as two individual bytes
-    face_button_1 = controller.get_button(0)
-    face_button_2 = controller.get_button(1)
-    
-    # Pack all the data into a struct
+    # Get face buttons (first two as an example)
+    face_buttons = 0
+    for i in range(2):  # Assuming only two face buttons; adjust if necessary
+        face_buttons |= (controller.get_button(i) << i)
+
+    # Pack data with the specified format
     data = struct.pack(
-        '16s6B2B',  # Format string for struct
-        robot_name_encoded,
-        left_joystick_x,
-        left_joystick_y,
-        right_joystick_x,
-        right_joystick_y,
-        left_trigger,
-        right_trigger,
-        face_button_1,
-        face_button_2
+        '16s6B2B',  # Format: 16 bytes for name, 6 single-byte axes, 2 bytes for buttons
+        robot_name_bytes,
+        left_joystick_x & 0xFF,  # Use only the lowest byte to fit in 1 byte
+        left_joystick_y & 0xFF,
+        right_joystick_x & 0xFF,
+        right_joystick_y & 0xFF,
+        left_trigger & 0xFF,
+        right_trigger & 0xFF,
+        face_buttons & 0xFF, (face_buttons >> 8) & 0xFF  # 2 bytes for face buttons
     )
+
     return data
+
 
 
 # Function to send controller data to ESP32
