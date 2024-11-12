@@ -18,10 +18,10 @@ import struct
 # Make sure you change these values after each esp is connected to the wifi
 # On game day we need to fill this out with every team and their esp32's ip address
 robots = [
-    {"name": "Team 1", "controller": None},
-    {"name": "Team 2", "controller": None},
-    {"name": "Team 3", "controller": None},
-    {"name": "Team 4", "controller": None},
+	{"name": "Team 1", "controller": None},
+	{"name": "Team 2", "controller": None},
+	{"name": "Team 3", "controller": None},
+	{"name": "Team 4", "controller": None},
 ]
 
 
@@ -32,89 +32,112 @@ active_button = None
 button_order = ["Standby", "Autonomy", "Teleoperation"]
 
 def get_game_state():
-    return active_button["text"]
+	return active_button["text"]
 
 # Function to connect robots to controllers in UI
 def connect_robot(robot_name, controller_name):
-    #Creates a lit of all the robots and controllers with the same name as input (should be only 1)
-    named_robots = [robot for robot in robots if robot["name"] == robot_name]
-    named_controllers = [controller for controller in active_controllers if controller["name"] == controller_name]
-    if len(named_robots) != 1 or len(named_controllers) != 1:
-        print("Failed to connect (name mismatch)")
-        return
-    # Sets the robots "controller" to the controller object so we can now easily send all the controller values to that robot
-    named_robots[0]["controller"] = named_controllers[0]["obj"]
-    print(f"Connected {robot_name} to {controller_name}")
+	#Creates a lit of all the robots and controllers with the same name as input (should be only 1)
+	named_robots = [robot for robot in robots if robot["name"] == robot_name]
+	named_controllers = [controller for controller in active_controllers if controller["name"] == controller_name]
+	if len(named_robots) != 1 or len(named_controllers) != 1:
+		print("Failed to connect (name mismatch)")
+		return
+	# Sets the robots "controller" to the controller object so we can now easily send all the controller values to that robot
+	named_robots[0]["controller"] = named_controllers[0]["obj"]
+	print(f"Connected {robot_name} to {controller_name}")
 
 # Function to toggle button states
 def toggle_button(new_active):
-    global active_button
-    # Deactivate the previously active button
-    if active_button:
-        active_button["relief"] = "raised"
-        active_button["bg"] = "SystemButtonFace"  # Reset to default button color
+	global active_button
+	# Deactivate the previously active button
+	if active_button:
+		active_button["relief"] = "raised"
+		active_button["bg"] = "SystemButtonFace"  # Reset to default button color
 
-    # Activate the new button
-    active_button = new_active
-    active_button["relief"] = "sunken"
-    active_button["bg"] = "lightgreen"  # Set active button color
+	# Activate the new button
+	active_button = new_active
+	active_button["relief"] = "sunken"
+	active_button["bg"] = "lightgreen"  # Set active button color
 
 # Keyboard shortcut function to rotate buttons
 def on_spacebar_press(event):
-    global button_order
-    current_idx = button_order.index(active_button["text"])
-    next_idx = (current_idx + 1) % len(button_order)
-    toggle_button(buttons[button_order[next_idx]])
+	global button_order
+	current_idx = button_order.index(active_button["text"])
+	next_idx = (current_idx + 1) % len(button_order)
+	toggle_button(buttons[button_order[next_idx]])
 
 # Function to send broadcast packets for game status
 def broadcast_game_status():
-    while True:
-        game_state = get_game_state()
-        packet = game_state.encode()
-        broadcast_socket.sendto(packet, ("<broadcast>", 2367))
-        time.sleep(1)  # Broadcast every second
+	while True:
+		game_state = get_game_state()
+		packet = game_state.encode()
+		broadcast_socket.sendto(packet, ("<broadcast>", 2367))
+		time.sleep(1)  # Broadcast every second
 
 # Function to encode controller data
-def encode_controller_data(controller):
-    #robots_connected = [robot for robot in robots if robot["controller"] == controller["obj"]]
-    # Read the axis and button values
-    axes = [controller.get_axis(i) for i in range(controller.get_numaxes())]
-    buttons = [controller.get_button(i) for i in range(controller.get_numbuttons())]
+def encode_controller_data(controller, robot_name):
+	robot_name_encoded = robot_name.encode('utf-8')[:16].ljust(16, b'\x00')
 
-    # Encode as bytes (example: use struct to pack the data)
-    data = struct.pack(f'{len(axes)}f{len(buttons)}B', *axes, *buttons)
-    return data
+	# Read joystick axis values and normalize them for encoding as single bytes
+	left_joystick_x = int((controller.get_axis(0) + 1) * 127)  # Normalize to 0-255
+	left_joystick_y = int((controller.get_axis(1) + 1) * 127)
+	right_joystick_x = int((controller.get_axis(3) + 1) * 127)
+	right_joystick_y = int((controller.get_axis(4) + 1) * 127)
+
+	# Read trigger values, normalize them for encoding as single bytes
+	left_trigger = int(controller.get_axis(2) * 127)  # Assuming the range is -1 to 1
+	right_trigger = int(controller.get_axis(5) * 127)
+
+	# Encode face buttons as a 2-byte integer, assuming they are mapped as individual bits
+	face_buttons = 0
+	for i in range(6):  # Assume there are two face buttons for this example
+		face_buttons |= (controller.get_button(i) << i)
+	
+	# Pack all the data into a struct
+	data = struct.pack(
+		'16s6B2H',  # Format string for struct
+		robot_name_encoded,
+		left_joystick_x,
+		left_joystick_y,
+		right_joystick_x,
+		right_joystick_y,
+		left_trigger,
+		right_trigger,
+		face_buttons
+	)
+	return data
 
 # Function to send controller data to ESP32
 def send_controller_data():
-    while True:
-        pygame.event.pump()
-        for i, controller in enumerate(active_controllers):
-            # For all active controllers find every robot it is connected to and send data to each one
-            data = encode_controller_data(controller["obj"])
-            broadcast_socket.sendto(data, ("<broadcast>", 2367))
-        time.sleep(0.05)  # Send data at ~20Hz
+	while True:
+		pygame.event.pump()
+		for i, controller in enumerate(active_controllers):
+			# For all active controllers find every robot it is connected to and send data to each one
+			robots_connected = [robot for robot in robots if robot["controller"] == controller["obj"]]
+			for robot in robots_connected:
+				broadcast_socket.sendto(encode_controller_data(controller["obj"], robot["name"]), ("<broadcast>", 2367))
+		time.sleep(0.05)  # Send data at ~20Hz
 
 def refresh_controllers():
-    active_controllers.clear()
-    # Detect all available joysticks
-    num_joysticks = pygame.joystick.get_count()
-    print(f"Number of joysticks detected: {num_joysticks}")
+	active_controllers.clear()
+	# Detect all available joysticks
+	num_joysticks = pygame.joystick.get_count()
+	print(f"Number of joysticks detected: {num_joysticks}")
 
-    for i in range(num_joysticks):
-        joystick = pygame.joystick.Joystick(i)  # Initialize joystick
-        joystick.init()
-        
-        # Get joystick details
-        joystick_info = {
-            "id": i,
-            "name": str(i) + ": " + joystick.get_name(),
-            "obj": joystick
-        }
-        active_controllers.append(joystick_info)
+	for i in range(num_joysticks):
+		joystick = pygame.joystick.Joystick(i)  # Initialize joystick
+		joystick.init()
+		
+		# Get joystick details
+		joystick_info = {
+			"id": i,
+			"name": str(i) + ": " + joystick.get_name(),
+			"obj": joystick
+		}
+		active_controllers.append(joystick_info)
 
-    controller1_dropdown["values"] = [controller["name"] for controller in active_controllers]
-    controller2_dropdown["values"] = [controller["name"] for controller in active_controllers]
+	controller1_dropdown["values"] = [controller["name"] for controller in active_controllers]
+	controller2_dropdown["values"] = [controller["name"] for controller in active_controllers]
 
 
 # Initialize Pygame for controller input
@@ -152,7 +175,7 @@ controller1_dropdown.grid(row=3, column=0, padx=5, pady=5)
 
 # Button to connect Robot 1
 connect1_button = tk.Button(frame1, text="Connect Robot 1", 
-                            command=lambda: connect_robot(robot1_var.get(), controller1_var.get()))
+							command=lambda: connect_robot(robot1_var.get(), controller1_var.get()))
 connect1_button.grid(row=4, column=0, padx=5, pady=5)
 
 # Dropdown to select Robot 2
@@ -171,7 +194,7 @@ controller2_dropdown.grid(row=3, column=0, padx=5, pady=5)
 
 # Button to connect Robot 2
 connect2_button = tk.Button(frame2, text="Connect Robot 2", 
-                            command=lambda: connect_robot(robot2_var.get(), controller2_var.get()))
+							command=lambda: connect_robot(robot2_var.get(), controller2_var.get()))
 connect2_button.grid(row=4, column=0, padx=5, pady=5)
 
 # Center Frame for toggle buttons
@@ -181,9 +204,9 @@ center_frame.grid(row=0, column=1, padx=10, pady=10)
 # Create buttons for Standby, Autonomy, and Teleoperation
 buttons = {}
 for i, mode in enumerate(button_order):
-    button = tk.Button(center_frame, text=mode, width=20, command=lambda m=mode: toggle_button(buttons[m]))
-    button.grid(row=i, column=0, padx=10, pady=10)
-    buttons[mode] = button
+	button = tk.Button(center_frame, text=mode, width=20, command=lambda m=mode: toggle_button(buttons[m]))
+	button.grid(row=i, column=0, padx=10, pady=10)
+	buttons[mode] = button
 
 # Refresh Controllers button
 refresh_button = tk.Button(center_frame, text="Refresh Controllers", width=20, command=refresh_controllers)
