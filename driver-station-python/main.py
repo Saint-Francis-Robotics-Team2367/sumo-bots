@@ -70,7 +70,7 @@ def on_spacebar_press(event):
 def broadcast_game_status():
 	while True:
 		game_state = get_game_state()
-		packet = game_state.encode()
+		packet = game_state.encode('utf-8')
 		broadcast_socket.sendto(packet, ("<broadcast>", 2367))
 		time.sleep(1)  # Broadcast every second
 
@@ -80,12 +80,12 @@ def encode_controller_data(controller, robot_name):
     robot_name_bytes = robot_name.encode('utf-8')[:16].ljust(16, b'\x00')
 
     # Get axis values
-    left_joystick_x = int(controller.get_axis(0) * 127)  # Scale to range [-127, 127]
-    left_joystick_y = int(controller.get_axis(1) * 127)
-    right_joystick_x = int(controller.get_axis(2) * 127)
-    right_joystick_y = int(controller.get_axis(3) * 127)
-    left_trigger = int(controller.get_axis(4) * 127)
-    right_trigger = int(controller.get_axis(5) * 127)
+    left_joystick_x = int((controller.get_axis(0) * 127)+127)  # Scale to range [-127, 127]
+    left_joystick_y = int((controller.get_axis(1) * 127)+127)
+    right_joystick_x = int((controller.get_axis(2) * 127)+127)
+    right_joystick_y = int((controller.get_axis(3) * 127)+127)
+    left_trigger = int((controller.get_axis(4) * 127)+127)
+    right_trigger = int((controller.get_axis(5) * 127)+127)
 
     # Get face buttons (first two as an example)
     face_buttons = 0
