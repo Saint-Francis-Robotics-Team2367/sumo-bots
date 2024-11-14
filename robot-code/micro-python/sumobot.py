@@ -15,7 +15,10 @@ class SumoBot:
     ### Does not return and is not user-facing
     def __init__(self, robot_name="default", ssid="WATCHTOWER", password="lancerrobotics", port=2367):
         self.robot_name = robot_name
-        self.game_state = 0
+        led = Pin(2, Pin.OUT) # LED declaration
+        self.game_state = 0 # game state of the robot
+        self.leftSpeed = 0 # left value of the joystick 
+        self.rightSpeed = 0 # right value of the joystick
         self.controller_state = {}
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.socket.settimeout(1.0)
@@ -28,11 +31,11 @@ class SumoBot:
             
         print('network config:', wlan.ifconfig())
         print("Connected to Wi-Fi. IP: ", wlan.ifconfig()[0])
+        led.value(1) # LED on when Wi-Fi connected
+        
 
         self.socket.bind(('', port))
         print('Receiving on UDP Port...')
-        
-        #_thread.start_new_thread(self.read_udp_packet, ())
 
     ### Called by user to receive the data from UDP
     ### The output either will show the updated game state or the controller status depending on game state
@@ -46,20 +49,22 @@ class SumoBot:
             os._exit(1)
 
     def read_udp_packet(self):
-        while True:
-            data = None
-            try:
-                data, addr = self.socket.recvfrom(1024)
-            except:
-                return {"data": None}
-
-            if len(data) == 24:
-                print(self.parse_robot_command(data))
-            else:
-                print(self.parse_game_state(data))
-            time.sleep(0.1)
-
-
+        data = None
+        try:
+            data, addr = self.socket.recvfrom(1024)
+        except:
+            return {"data": None}
+        
+        if len(data) == 24:
+            controller_state = self.parse_robot_command(data) # get controller state
+            if controller_state != -1 and controller_state != 0: 
+                self.leftSpeed = controller_state["joystick_left_y"] # get left joystick y value
+                self.rightSpeed = controller_state["joystick_right_y"] # get right joystick y value
+        else:
+            self.game_state = self.parse_game_state(data) # get game state of robot currently
+        
+            
+    
     ### Parses the UDP data to apply the game state to the robot if applicable
     ### Returns a message with the game state for user info, no action required with this information
     def parse_game_state(self, data):
@@ -98,13 +103,76 @@ class SumoBot:
         
         self.controller_state = controller_state
         return controller_state
-    
-bot = SumoBot("Team 1", "BuffoonPack", "grosmichel")
 
+class Motor:
+    ### Sets up motor controller for user control
+    ### Does not return
+    def __init__(self, pin1, pin2, speed_limit=0.5, pwm_freq=2000):
+        assert speed_limit<=1 and speed_limit>0
+        self.pin1 = PWM(Pin(pin1), pwm_freq)
+        self.pin2 = PWM(Pin(pin2), pwm_freq)
+        self.speed_limit = speed_limit
+
+    ### Gives user control of driving the robot while abstracting PWM signals from them
+    ### Does not return
+    def drive(self, speed):
+        assert speed<=1 and speed>=-1
+        duty_cycle = round(self.speed_limit*abs(speed)*1023)
+        if speed<0:
+            self.pin1.duty(duty_cycle)
+            self.pin2.duty(0)
+        elif speed>0:
+            self.pin1.duty(0)
+            self.pin2.duty(duty_cycle)
+        else:
+            self.pin1.duty(0)
+            self.pin2.duty(0)
+
+#bot = SumoBot("Team 1") # bot declarations
+bot2 = SumoBot("Team 2") # bot declarations
+
+leftmotor = Motor(18, 19)
+rightmotor = Motor(21, 22)
+
+leftmotor.drive(0)
+rightmotor.drive(0)
+'''
+# Run this code for Team 1
 while True:
-    #bot.read_udp_packet()
-    print(bot.game_state)
-    print(bot.controller_state)
-    time.sleep(0.05)
-
-
+    # get the game state and controller values
+    bot.read_udp_packet()
+    
+    if(bot.game_state == 0): # if it is in standby mode, do nothing
+        leftmotor.drive(0)
+        rightmotor.drive(0)
+    elif(bot.game_state == 2): # if it is in auto, do auto-code
+        # put team auto code here
+        leftmotor.drive(0)
+        rightmotor.drive(0)
+    elif(bot.game_state == 3): # if it is in tele-op, start moving motors
+        lefty = (int(bot.leftSpeed) - 128)/128
+        righty = (int(bot.rightSpeed) - 128)/128
+        print(lefty, bot.leftSpeed)
+        print(righty, bot.rightSpeed)
+        leftmotor.drive(-1*lefty)
+        rightmotor.drive(righty)
+'''
+# Run this code for Team 2
+while True:
+    # get the game state and controller values 
+    bot2.read_udp_packet()
+    
+    if(bot2.game_state == 0): # if it is in standby mode, do nothing
+        leftmotor.drive(0)
+        rightmotor.drive(0)
+    elif(bot2.game_state == 2): # if it is in auto, do auto-code
+        # put team auto code here
+        leftmotor.drive(0)
+        rightmotor.drive(0)
+    elif(bot2.game_state == 3): # if it is in tele-op, start moving motors
+        lefty = (int(bot2.leftSpeed) - 128)/128
+        righty = (int(bot2.rightSpeed) - 128)/128
+        print(lefty, bot2.leftSpeed)
+        print(righty, bot2.rightSpeed)
+        leftmotor.drive(-1*lefty)
+        rightmotor.drive(righty)
