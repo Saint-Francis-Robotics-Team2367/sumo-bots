@@ -4,6 +4,7 @@ import time
 from machine import Pin, PWM, ADC
 import _thread
 
+
 ## Unclaimed = 0
 ## Standby = 1
 ## Autonomy = 2
@@ -14,6 +15,7 @@ class SumoBot:
     ### Sets up the ESP32 dev board and connects to the Wi-Fi network
     ### Does not return and is not user-facing
     def __init__(self, robot_name="default", ssid="WATCHTOWER", password="lancerrobotics", port=2367):
+        led.value(1) # LED on when robot on
         self.robot_name = robot_name
         led = Pin(2, Pin.OUT) # LED declaration
         self.game_state = 0 # game state of the robot
@@ -31,11 +33,12 @@ class SumoBot:
             
         print('network config:', wlan.ifconfig())
         print("Connected to Wi-Fi. IP: ", wlan.ifconfig()[0])
-        led.value(1) # LED on when Wi-Fi connected
-        
+        led.value(0) # LED on when Wi-Fi connected
+
 
         self.socket.bind(('', port))
         print('Receiving on UDP Port...')
+        broadcast_thread = threading.Thread(target=broadcast)
 
     ### Called by user to receive the data from UDP
     ### The output either will show the updated game state or the controller status depending on game state
@@ -54,7 +57,6 @@ class SumoBot:
             data, addr = self.socket.recvfrom(1024)
         except:
             return {"data": None}
-        
         if len(data) == 24:
             controller_state = self.parse_robot_command(data) # get controller state
             if controller_state != -1 and controller_state != 0: 
@@ -78,7 +80,9 @@ class SumoBot:
         elif data == "Teleoperation":
             self.game_state = 3
         else:
+            led.value(0)
             return 0
+        led.value(1)
         return self.game_state
 
 
@@ -149,15 +153,14 @@ class Sensor:
             self.pin = Pin(self.pin_num, Pin.IN, Pin.PULL_DOWN)
         return self.pin.value()
 
-#bot = SumoBot("Team 1") # bot declarations
-bot2 = SumoBot("Team 2") # bot declarations
+bot = SumoBot("REPLACE TEAM NAME HERE") # bot declarations
 
 leftmotor = Motor(18, 19)
 rightmotor = Motor(21, 22)
 
 leftmotor.drive(0)
 rightmotor.drive(0)
-'''
+
 # Run this code for Team 1
 while True:
     # get the game state and controller values
@@ -167,7 +170,7 @@ while True:
         leftmotor.drive(0)
         rightmotor.drive(0)
     elif(bot.game_state == 2): # if it is in auto, do auto-code
-        # put team auto code here
+        # PUT TEAM AUTO CODE HERE **************************************************
         leftmotor.drive(0)
         rightmotor.drive(0)
     elif(bot.game_state == 3): # if it is in tele-op, start moving motors
@@ -177,23 +180,5 @@ while True:
         print(righty, bot.rightSpeed)
         leftmotor.drive(-1*lefty)
         rightmotor.drive(righty)
-'''
-# Run this code for Team 2
-while True:
-    # get the game state and controller values 
-    bot2.read_udp_packet()
-    
-    if(bot2.game_state == 0): # if it is in standby mode, do nothing
-        leftmotor.drive(0)
-        rightmotor.drive(0)
-    elif(bot2.game_state == 2): # if it is in auto, do auto-code
-        # put team auto code here
-        leftmotor.drive(0)
-        rightmotor.drive(0)
-    elif(bot2.game_state == 3): # if it is in tele-op, start moving motors
-        lefty = (int(bot2.leftSpeed) - 128)/128
-        righty = (int(bot2.rightSpeed) - 128)/128
-        print(lefty, bot2.leftSpeed)
-        print(righty, bot2.rightSpeed)
-        leftmotor.drive(-1*lefty)
-        rightmotor.drive(righty)
+
+
