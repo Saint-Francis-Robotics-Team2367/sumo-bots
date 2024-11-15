@@ -18,10 +18,19 @@ import struct
 # Make sure you change these values after each esp is connected to the wifi
 # On game day we need to fill this out with every team and their esp32's ip address
 robots = [
-	{"name": "Team 1", "controller": None},
-	{"name": "Team 2", "controller": None},
-	{"name": "Team 3", "controller": None},
-	{"name": "Team 4", "controller": None},
+	{"name": "SSN", "controller": None},
+	{"name": "Wannabes", "controller": None},
+	{"name": "Sumo Spiderman", "controller": None},
+	{"name": "NAA Bots", "controller": None},
+    {"name": "R2-D2", "controller": None},
+    {"name": "AshmitsGuineaPig", "controller": None},
+    {"name": "King Bob", "controller": None},
+    {"name": "COMS", "controller": None},
+    {"name": "Team SMH", "controller": None},
+    {"name": "Team Cheez-its", "controller": None},
+    {"name": "ChatGPT", "controller": None},
+    {"name": "Egg Roll", "controller": None},
+    {"name": "Miyagi-do", "controller": None},
 ]
 
 

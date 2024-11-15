@@ -128,6 +128,27 @@ class Motor:
             self.pin1.duty(0)
             self.pin2.duty(0)
 
+class Sensor:
+    ### Sets up a sensor given pin number and sensor type
+    ### Does not return
+    def __init__(self, pin_number):
+        self.pin_num = pin_number
+        self.pin = None
+
+    ### Reads analog signals coming from the sensor
+    ### Returns analog value
+    def read_analog(self):
+        if type(self.pin) != ADC:
+            self.pin = ADC(Pin(self.pin_num))
+        return self.pin.read()
+    
+    ### Reads digital signals coming from the sensor
+    ### Returns digital value
+    def read_digital(self):
+        if type(self.pin) != Pin:
+            self.pin = Pin(self.pin_num, Pin.IN, Pin.PULL_DOWN)
+        return self.pin.value()
+
 #bot = SumoBot("Team 1") # bot declarations
 bot2 = SumoBot("Team 2") # bot declarations
 
